@@ -1,0 +1,29 @@
+{
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "shell": "powershell",
+            "command": "& \"$env:USERPROFILE\\.claude\\hooks\\safety-guard.ps1\"",
+            "statusMessage": "안전장치 검사 중"
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "shell": "powershell",
+            "command": "[console]::beep(800,200); [console]::beep(1000,300)"
+          }
+        ]
+      }
+    ]
+  }
+}

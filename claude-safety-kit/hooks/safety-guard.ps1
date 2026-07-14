@@ -20,7 +20,7 @@
 param([switch]$SelfTest)
 $ErrorActionPreference = 'SilentlyContinue'
 
-$VERSION = '1.1.1'
+$VERSION = '1.1.2'
 $TAG     = "[안전장치 v$VERSION]"
 $GUIDE   = '%USERPROFILE%\.claude\hooks\SAFETY-KIT.md'
 

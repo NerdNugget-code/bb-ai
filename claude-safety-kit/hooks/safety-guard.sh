@@ -17,7 +17,7 @@
 #  ▸ 지금 바로 확인:   bash safety-guard.sh --self-test
 #  ▸ 설명·끄기·삭제:   같은 폴더의 SAFETY-KIT.md
 # ============================================================
-VERSION="1.1.1"
+VERSION="1.1.2"
 TAG="[안전장치 v$VERSION]"
 GUIDE="~/.claude/hooks/SAFETY-KIT.md"
 

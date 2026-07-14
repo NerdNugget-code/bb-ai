@@ -15,7 +15,7 @@
 # ============================================================
 $ErrorActionPreference = 'Stop'
 
-$SafetyKitVersion = '1.1.1'
+$SafetyKitVersion = '1.1.2'
 $BaseUrl   = 'https://raw.githubusercontent.com/NerdNugget-code/bb-ai/main/claude-safety-kit'
 $SourceUrl = 'https://github.com/NerdNugget-code/bb-ai/tree/main/claude-safety-kit'   # 내용 공개 확인용
 
@@ -50,6 +50,19 @@ if ($LASTEXITCODE -eq 0) {
   exit 1
 }
 
+# ── 2.5) 차단 신호 전달 검사 — 등록할 훅 명령 '그대로' 위험 페이로드를
+#         흘려보내 exit 2가 살아서 나오는지 확인한다.
+#         (Windows PowerShell 5.1의 -Command 는 `& 스크립트`의 exit 2를 1로
+#          뭉개므로 명령 끝의 "; exit $LASTEXITCODE" 가 필수 — v1.1.2 수정)
+$HookCommand = 'try { Set-ExecutionPolicy Bypass -Scope Process -Force } catch {}; & "$env:USERPROFILE\.claude\hooks\safety-guard.ps1"; exit $LASTEXITCODE'
+'{"tool_input":{"command":"git push --force origin main"}}' | powershell -NoProfile -Command $HookCommand 2>$null | Out-Null
+if ($LASTEXITCODE -eq 2) {
+  Write-Host "   ✓ 차단 신호 전달 검사 통과 (exit 2)"
+} else {
+  Write-Host "   ❌ 차단 신호가 전달되지 않습니다 (exit $LASTEXITCODE) — 설치를 중단합니다. (등록 전이라 클로드 설정은 그대로입니다)"
+  exit 1
+}
+
 # ── 3) 클로드 설정에 등록 (기존 설정은 보존, 깨진 JSON은 건드리지 않음) ──
 if (Test-Path $settings) {
   try {
@@ -78,10 +91,11 @@ if ($obj.PSObject.Properties.Name -contains 'hooks' -and $obj.hooks) {
 $pre  = @($pre  | Where-Object { ($_ | ConvertTo-Json -Depth 20 -Compress) -notmatch 'safety-guard' })
 $stop = @($stop | Where-Object { ($_ | ConvertTo-Json -Depth 20 -Compress) -notmatch 'safety-kit-sound' })
 
-# 실행 정책이 Restricted 여도 훅이 돌 수 있게 Process 범위에서만 우회한다
+# 실행 정책이 Restricted 여도 훅이 돌 수 있게 Process 범위에서만 우회하고,
+# exit 2(차단 신호)가 래퍼에서 뭉개지지 않도록 그대로 다시 내보낸다 (위 2.5에서 실검증한 명령)
 $pre += @{ matcher = 'Bash'; hooks = @(@{
   type = 'command'; shell = 'powershell'
-  command = 'try { Set-ExecutionPolicy Bypass -Scope Process -Force } catch {}; & "$env:USERPROFILE\.claude\hooks\safety-guard.ps1"'
+  command = $HookCommand
   statusMessage = '안전장치 검사 중' }) }
 $stop += @{ matcher = ''; hooks = @(@{
   type = 'command'; shell = 'powershell'

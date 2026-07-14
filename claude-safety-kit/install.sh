@@ -15,7 +15,7 @@
 # ============================================================
 set -e
 
-SAFETY_KIT_VERSION="1.1.1"
+SAFETY_KIT_VERSION="1.1.2"
 BASE_URL="https://raw.githubusercontent.com/NerdNugget-code/bb-ai/main/claude-safety-kit"
 SOURCE_URL="https://github.com/NerdNugget-code/bb-ai/tree/main/claude-safety-kit"   # 내용 공개 확인용
 
@@ -47,6 +47,18 @@ if bash "$HOOKS_DIR/safety-guard.sh" --self-test >/dev/null 2>&1; then
   echo "   ✓ 자가진단 통과"
 else
   echo "   ❌ 자가진단 실패 — 설치를 중단합니다. (등록 전이라 클로드 설정은 그대로입니다)"
+  exit 1
+fi
+
+# ── 2.5) 차단 신호 전달 검사 — 등록할 훅 명령 '그대로' 위험 페이로드를
+#         흘려보내 차단 신호(exit 2)가 살아서 나오는지 확인한다.
+HOOK_CMD='bash "$HOME/.claude/hooks/safety-guard.sh"'
+rc=0
+printf '%s' '{"tool_input":{"command":"git push --force origin main"}}' | bash -c "$HOOK_CMD" >/dev/null 2>&1 || rc=$?
+if [ "$rc" -eq 2 ]; then
+  echo "   ✓ 차단 신호 전달 검사 통과 (exit 2)"
+else
+  echo "   ❌ 차단 신호가 전달되지 않습니다 (exit $rc) — 설치를 중단합니다. (등록 전이라 클로드 설정은 그대로입니다)"
   exit 1
 fi
 

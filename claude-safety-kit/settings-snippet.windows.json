@@ -7,7 +7,7 @@
           {
             "type": "command",
             "shell": "powershell",
-            "command": "try { Set-ExecutionPolicy Bypass -Scope Process -Force } catch {}; & \"$env:USERPROFILE\\.claude\\hooks\\safety-guard.ps1\"",
+            "command": "try { Set-ExecutionPolicy Bypass -Scope Process -Force } catch {}; & \"$env:USERPROFILE\\.claude\\hooks\\safety-guard.ps1\"; exit $LASTEXITCODE",
             "statusMessage": "안전장치 검사 중"
           }
         ]

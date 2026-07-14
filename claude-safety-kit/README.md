@@ -1,4 +1,4 @@
-# 🛟 클로드 안전장치 키트 (Claude Safety Kit) v1.1.4
+# 🛟 클로드 안전장치 키트 (Claude Safety Kit) v1.1.5
 
 > "AI가 내 컴퓨터를 망가뜨리면 어떡하지?" — 처음 시작하는 분들의 가장 큰 불안을 없애기 위한 안전장치입니다.
 > 클로드가 **되돌릴 수 없는 위험한 명령**을 실행하려 하면 자동으로 막고, **비밀키(API 키·비밀번호)가 화면에 노출**되는 것도 막습니다.
@@ -123,6 +123,10 @@ claude-safety-kit/
 │   └── SAFETY-KIT.md             ← 설치되는 설명서 (몇 달 뒤의 나를 위한 것)
 └── settings-snippet.{mac,windows}.json  ← 수동 설치용 설정 조각
 ```
+
+## v1.1.5에서 바뀐 것
+
+- **설치기 자멸 버그 수정**: 2.5단계 차단 신호 검사에서 가드가 차단 메시지를 stderr로 쓰면, `$ErrorActionPreference='Stop'`인 PowerShell 5.1이 이를 NativeCommandError로 승격시켜 설치가 중단됐다(차단이 잘 작동할수록 설치가 실패). 해당 검사 동안만 EAP를 완화. (신규 Windows 실기기 테스트에서 발견)
 
 ## v1.1.4에서 바뀐 것
 

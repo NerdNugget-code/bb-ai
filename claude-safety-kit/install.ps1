@@ -18,7 +18,7 @@ $ErrorActionPreference = 'Stop'
 # 한국어 Windows는 콘솔 출력이 CP949라 한글 안내가 깨진다 → UTF-8 강제
 try { [Console]::OutputEncoding = [System.Text.Encoding]::UTF8 } catch {}
 
-$SafetyKitVersion = '1.1.4'
+$SafetyKitVersion = '1.1.5'
 $BaseUrl   = 'https://raw.githubusercontent.com/NerdNugget-code/bb-ai/main/claude-safety-kit'
 $SourceUrl = 'https://github.com/NerdNugget-code/bb-ai/tree/main/claude-safety-kit'   # 내용 공개 확인용
 
@@ -67,7 +67,12 @@ if ($LASTEXITCODE -eq 0) {
 #         (Windows PowerShell 5.1의 -Command 는 `& 스크립트`의 exit 2를 1로
 #          뭉개므로 명령 끝의 "; exit $LASTEXITCODE" 가 필수 — v1.1.2 수정)
 $HookCommand = 'try { Set-ExecutionPolicy Bypass -Scope Process -Force } catch {}; & "$env:USERPROFILE\.claude\hooks\safety-guard.ps1"; exit $LASTEXITCODE'
+# 가드가 차단 메시지를 stderr로 쓰면 EAP='Stop'인 PS 5.1이 NativeCommandError로
+# 설치를 죽인다(차단이 잘 될수록 설치가 실패하는 역설) → 이 검사 동안만 EAP 완화 (v1.1.5)
+$prevEap = $ErrorActionPreference
+$ErrorActionPreference = 'Continue'
 '{"tool_input":{"command":"git push --force origin main"}}' | powershell -NoProfile -Command $HookCommand 2>$null | Out-Null
+$ErrorActionPreference = $prevEap
 if ($LASTEXITCODE -eq 2) {
   Write-Host "   ✓ 차단 신호 전달 검사 통과 (exit 2)"
 } else {

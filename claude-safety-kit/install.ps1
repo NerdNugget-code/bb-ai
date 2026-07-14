@@ -1,71 +1,66 @@
 # ============================================================
-#  클로드 안전장치 — 원클릭 설치 (Windows / PowerShell)
+#  클로드 안전장치 — 원클릭 설치 v1.1.0 (Windows / PowerShell)
 #
 #  [원격 설치] PowerShell 또는 클로드에게:
 #     irm https://raw.githubusercontent.com/NerdNugget-code/bb-ai/main/claude-safety-kit/install.ps1 | iex
 #  [로컬 설치]
-#     우클릭 → "PowerShell로 실행"   또는   powershell -File install.ps1
+#     우클릭 → "PowerShell로 실행"   또는   powershell -ExecutionPolicy Bypass -File install.ps1
 #
-#  하는 일: 안전장치를 %USERPROFILE%\.claude 에 넣고 클로드 설정에 자동 등록.
-#  * git init 하지 않음  * 기존 설정 덮어쓰지 않고 보존+백업  * 여러 번 돌려도 안전
-#  * 추가 설치 필요 없음 (PowerShell 내장 기능만 사용)
+#  하는 일: 안전장치 3개 파일(차단기·설명서·제거스크립트)을 %USERPROFILE%\.claude\hooks 에
+#          넣고 클로드 설정(hooks)에 등록한다.
+#  * git init 하지 않음        * 기존 설정은 보존 + 백업(settings.json.bak)
+#  * 설정 파일이 깨져 있으면 절대 덮어쓰지 않고 중단
+#  * 여러 번 돌려도 안전(중복 등록 안 됨), 제거는 uninstall.ps1 한 번이면 끝
+#  * 추가 설치 필요 없음 (Windows 내장 PowerShell만 사용)
 # ============================================================
 $ErrorActionPreference = 'Stop'
 
-$SafetyKitVersion = '1.0.0'
+$SafetyKitVersion = '1.1.0'
+$BaseUrl   = 'https://raw.githubusercontent.com/NerdNugget-code/bb-ai/main/claude-safety-kit'
 $SourceUrl = 'https://github.com/NerdNugget-code/bb-ai/tree/main/claude-safety-kit'   # 내용 공개 확인용
 
 $claudeDir = Join-Path $env:USERPROFILE '.claude'
 $hooksDir  = Join-Path $claudeDir 'hooks'
 $settings  = Join-Path $claudeDir 'settings.json'
-$guardPath = Join-Path $hooksDir 'safety-guard.ps1'
 
 Write-Host ""
 Write-Host "🛟  클로드 안전장치를 설치할게요...  (v$SafetyKitVersion)"
 New-Item -ItemType Directory -Force -Path $hooksDir | Out-Null
 
-# ── 1) 안전장치 스크립트 심기 ────────────────────────────────
-$guard = @'
-# safety-guard.ps1 — Claude Code 초보 안전장치 (Windows / PowerShell)
-$ErrorActionPreference = 'SilentlyContinue'
-$raw = [Console]::In.ReadToEnd()
-if ([string]::IsNullOrWhiteSpace($raw)) { exit 0 }
-function Block([string]$msg) { [Console]::Error.WriteLine($msg); exit 2 }
+# ── 1) 파일 3개 설치 (로컬 사본이 있으면 복사, 없으면 원본 저장소에서 다운로드) ──
+function Install-KitFile([string]$relPath, [string]$destPath) {
+  $local = if ($PSScriptRoot) { Join-Path $PSScriptRoot ($relPath -replace '/', '\') } else { $null }
+  if ($local -and (Test-Path $local)) {
+    Copy-Item $local $destPath -Force
+  } else {
+    Invoke-WebRequest -UseBasicParsing -Uri "$BaseUrl/$relPath" -OutFile $destPath
+  }
+}
+Install-KitFile 'hooks/safety-guard.ps1' (Join-Path $hooksDir 'safety-guard.ps1')
+Install-KitFile 'hooks/SAFETY-KIT.md'    (Join-Path $hooksDir 'SAFETY-KIT.md')
+Install-KitFile 'uninstall.ps1'          (Join-Path $hooksDir 'uninstall.ps1')
+Write-Host "   ✓ 안전장치 파일 설치됨 ($hooksDir)"
 
-$danger = @(
-  @{ p = 'rm\s+-[a-z]*r[a-z]*f?\s+(/|~|\*|\.(\s|$|/))'; m = '되돌릴 수 없는 삭제(rm -rf)를 막았어요.' },
-  @{ p = 'Remove-Item[^;&|]*-Recurse[^;&|]*-Force[^;&|]*(C:\\(\s|"|''|$)|\\Windows|\$env:USERPROFILE)'; m = '시스템 폴더 전체 삭제(Remove-Item -Recurse -Force)를 막았어요.' },
-  @{ p = '\b(rd|rmdir|del)\s+[^;&|]*/[a-zA-Z]*s[^;&|]*(C:\\?(\s|$)|\\Windows|%SystemRoot%)'; m = '시스템 폴더 재귀 삭제(rd/del /s)를 막았어요.' },
-  @{ p = '\bformat\s+[A-Za-z]:'; m = '드라이브 포맷(format)을 막았어요.' },
-  @{ p = 'Format-Volume|\bdiskpart\b|cipher\s+/w'; m = '디스크를 지우는 명령을 막았어요.' },
-  @{ p = 'git\s+push\s+(--force|-f)(\s|$)'; m = '강제 푸시(git push --force)를 막았어요. 협업 기록이 지워질 수 있어요.' },
-  @{ p = 'git\s+reset\s+--hard'; m = '작업 내용을 통째로 되돌리는 git reset --hard를 막았어요.' },
-  @{ p = 'chmod\s+-R\s+777'; m = '위험한 권한 변경(chmod -R 777)을 막았어요.' },
-  @{ p = ':\(\)\s*\{'; m = '시스템을 멈추게 하는 명령(포크밤)을 막았어요.' },
-  @{ p = 'DROP\s+TABLE'; m = '데이터베이스 테이블 삭제(DROP TABLE)를 막았어요.' }
-)
-foreach ($d in $danger) {
-  if ($raw -match $d.p) { Block("[SAFETY] $($d.m) 정말 필요하면 직접 터미널에서 실행하세요.") }
+# ── 2) 설치 직후 자가진단 — 통과 못 하면 여기서 멈춘다 ─────────
+powershell -NoProfile -ExecutionPolicy Bypass -File (Join-Path $hooksDir 'safety-guard.ps1') -SelfTest | Out-Null
+if ($LASTEXITCODE -eq 0) {
+  Write-Host "   ✓ 자가진단 통과"
+} else {
+  Write-Host "   ❌ 자가진단 실패 — 설치를 중단합니다. (등록 전이라 클로드 설정은 그대로입니다)"
+  exit 1
 }
 
-$secret = @(
-  @{ p = '(^|[^A-Za-z0-9_])printenv([^A-Za-z0-9_]|$)'; m = '환경변수 전체 덤프(printenv)를 막았어요.' },
-  @{ p = '(Get-ChildItem|gci|ls|dir)\s+Env:'; m = '환경변수 전체 열람(Env:)을 막았어요.' },
-  @{ p = '(Get-Content|gc|cat|type|more|Select-String|sls|findstr)\b[^;&|]*\.env\b'; m = '.env(비밀키 파일) 열람을 막았어요.' },
-  @{ p = '(echo|Write-Host|Write-Output)[^;&|]*\$\{?(env:)?[A-Za-z_]*(KEY|SECRET|TOKEN|PASSWORD|PASSWD)'; m = '비밀키를 화면에 출력하려는 명령을 막았어요.' }
-)
-foreach ($s in $secret) {
-  if ($raw -match $s.p) { Block("[SECRET] $($s.m) 키는 화면에 찍지 말고 환경변수로만 사용하세요.") }
-}
-exit 0
-'@
-[System.IO.File]::WriteAllText($guardPath, $guard, (New-Object System.Text.UTF8Encoding($false)))
-Write-Host "   ✓ 안전장치 스크립트 설치됨"
-
-# ── 2) 클로드 설정에 등록 (기존 설정은 보존) ──────────────────
+# ── 3) 클로드 설정에 등록 (기존 설정은 보존, 깨진 JSON은 건드리지 않음) ──
 if (Test-Path $settings) {
+  try {
+    $obj = Get-Content $settings -Raw -Encoding UTF8 | ConvertFrom-Json
+  } catch {
+    Write-Host "   ❌ 기존 settings.json 이 올바른 JSON이 아니라서, 안전을 위해 아무것도"
+    Write-Host "      덮어쓰지 않고 중단합니다. 클로드에게 'settings.json 이 왜 깨졌는지"
+    Write-Host "      봐줘'라고 요청한 뒤 다시 설치하세요."
+    exit 1
+  }
   Copy-Item $settings "$settings.bak" -Force
-  $obj = Get-Content $settings -Raw | ConvertFrom-Json
 } else {
   $obj = New-Object PSObject
 }
@@ -79,13 +74,14 @@ if ($obj.PSObject.Properties.Name -contains 'hooks' -and $obj.hooks) {
     else   { $otherHooks[$p.Name] = $p.Value }
   }
 }
-# 이전에 설치한 우리 훅은 제거(중복 방지)
-$pre  = @($pre  | Where-Object { ($_ | ConvertTo-Json -Depth 20 -Compress) -notmatch 'safety-guard\.ps1' })
-$stop = @($stop | Where-Object { ($_ | ConvertTo-Json -Depth 20 -Compress) -notmatch 'safety-kit-sound|console\]::beep' })
+# 이전 버전 포함, 우리가 등록했던 항목만 제거(다른 훅은 그대로)
+$pre  = @($pre  | Where-Object { ($_ | ConvertTo-Json -Depth 20 -Compress) -notmatch 'safety-guard' })
+$stop = @($stop | Where-Object { ($_ | ConvertTo-Json -Depth 20 -Compress) -notmatch 'safety-kit-sound' })
 
+# 실행 정책이 Restricted 여도 훅이 돌 수 있게 Process 범위에서만 우회한다
 $pre += @{ matcher = 'Bash'; hooks = @(@{
   type = 'command'; shell = 'powershell'
-  command = '& "$env:USERPROFILE\.claude\hooks\safety-guard.ps1"'
+  command = 'try { Set-ExecutionPolicy Bypass -Scope Process -Force } catch {}; & "$env:USERPROFILE\.claude\hooks\safety-guard.ps1"'
   statusMessage = '안전장치 검사 중' }) }
 $stop += @{ matcher = ''; hooks = @(@{
   type = 'command'; shell = 'powershell'
@@ -102,11 +98,16 @@ $json = $obj | ConvertTo-Json -Depth 20
 Write-Host "   ✓ 클로드 설정에 등록됨$(if (Test-Path "$settings.bak") { '  (기존 설정은 settings.json.bak 으로 백업)' })"
 
 Write-Host ""
-Write-Host "🎉  설치 완료!  클로드를 껐다 켠 뒤, 이렇게 한번 확인해 보세요:"
+Write-Host "🎉  설치 완료!  클로드를 완전히 껐다 켠 뒤, 이렇게 확인해 보세요:"
 Write-Host ""
-Write-Host '     클로드에게 →  "내 바탕화면 폴더 전부 지워줘"'
+Write-Host '   ① 클로드에게 →  "안전장치 자가진단 실행해줘"'
+Write-Host "      (아무것도 실행하지 않는 검사입니다. '전부 통과'가 나오면 규칙 정상)"
 Write-Host ""
-Write-Host "   🛡️  '[SAFETY] ...막았어요' 메시지가 뜨면 정상 작동입니다. (실제로 지워지지 않아요)"
+Write-Host '   ② 클로드에게 →  "git push --force 실행해봐"'
+Write-Host "      → 🛡️ '[안전장치 v$SafetyKitVersion] 강제 푸시...를 막았어요' 가 뜨면 훅 연결 성공"
+Write-Host "      (git 저장소가 아닌 폴더에서 하면, 설령 안 막혀도 아무 일도 일어나지 않습니다)"
 Write-Host ""
-Write-Host "   이 스크립트가 무엇을 하는지는 여기서 다 볼 수 있어요: $SourceUrl"
+Write-Host "   설명서·끄는 법: %USERPROFILE%\.claude\hooks\SAFETY-KIT.md"
+Write-Host "   완전 제거: powershell -NoProfile -ExecutionPolicy Bypass -File `"$env:USERPROFILE\.claude\hooks\uninstall.ps1`""
+Write-Host "   전체 코드 공개: $SourceUrl"
 Write-Host ""

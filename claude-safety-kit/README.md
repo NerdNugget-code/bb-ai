@@ -1,25 +1,32 @@
-# 🛟 클로드 안전장치 키트 (Claude Safety Kit)
+# 🛟 클로드 안전장치 키트 (Claude Safety Kit) v1.1.0
 
 > "AI가 내 컴퓨터를 망가뜨리면 어떡하지?" — 처음 시작하는 분들의 가장 큰 불안을 없애기 위한 안전장치입니다.
 > 클로드가 **되돌릴 수 없는 위험한 명령**을 실행하려 하면 자동으로 막고, **비밀키(API 키·비밀번호)가 화면에 노출**되는 것도 막습니다.
 
 이건 백신처럼 **한 번 깔아두면 조용히 뒤에서 지켜주는** 장치예요. 평소엔 아무것도 안 하고, 위험한 순간에만 "이건 못 해요" 하고 막습니다.
 
+**그리고 이 장치는 1회용이 아니라 여러분 컴퓨터의 "출발점"이 됩니다.** 그래서 처음부터 이렇게 만들었어요:
+
+- 🏷️ **막을 때마다 자기 이름을 밝힙니다** — 모든 차단 메시지가 `[안전장치 v1.1.0]`으로 시작하므로, 나중에 "왜 이 명령이 안 되지?" 하고 헤맬 일이 없습니다.
+- 📖 **설명서가 함께 설치됩니다** — `~/.claude/hooks/SAFETY-KIT.md`. 몇 달 뒤에 봐도 이게 뭔지, 어떻게 끄는지 알 수 있어요. 클로드에게 "SAFETY-KIT.md 읽고 설명해줘"라고 해도 됩니다.
+- 🧹 **한 번에 깨끗이 지워집니다** — 동봉된 `uninstall` 스크립트 하나면 훅 등록과 파일이 전부 제거됩니다.
+
 ---
 
 ## 무엇을 막아주나요?
 
 **되돌릴 수 없는 파괴적 명령**
-- `rm -rf /`, `rm -rf ~`, `rm -rf *` — 시스템·홈·전체 폴더 삭제
+- 홈 폴더·바탕화면·문서·시스템 폴더·드라이브 전체 삭제 — `rm -rf ~`, `rm -rf "/Users/나/Desktop"`, `Remove-Item -Recurse C:\Users\...`, `rd /s C:\` 등 **따옴표를 치든, `$HOME`으로 쓰든, 경로를 풀어 쓰든** 잡아냅니다
 - `format C:`, `diskpart`, `Format-Volume` — 드라이브 포맷
-- 시스템 폴더 재귀 삭제 (`Remove-Item -Recurse -Force C:\...`, `rd /s`)
-- `git push --force`, `git reset --hard` — 협업 기록·작업 내용 날림
+- `git push --force`, `git reset --hard`, `git clean -f` — 협업 기록·작업 내용 날림 (안전한 `--force-with-lease`는 허용)
 - `chmod -R 777`, 포크밤, `DROP TABLE`
 
 **비밀키 노출**
-- `printenv`, `Get-ChildItem Env:` — 환경변수(비밀키 포함) 통째 출력
+- `printenv`, `env`, `Get-ChildItem Env:` — 환경변수(비밀키 포함) 통째 출력
 - `.env` 파일 열람 (`cat .env`, `Get-Content .env` 등)
 - `echo $API_KEY` 같이 키를 화면에 찍는 명령
+
+**일상 작업은 건드리지 않습니다**: `npm install`, `git commit`, `rm -rf node_modules`, `rm -rf dist` 같은 프로젝트 안 정리는 그대로 됩니다.
 
 > ⚠️ 안전장치는 "그물"이지 "방탄유리"가 아니에요. 흔한 사고를 막아주지만, 클로드가 하는 일은 늘 눈으로 확인하세요.
 > 그리고 **첫 로그인과 최종 발행처럼 진짜 중요한 행동은 항상 사람이 직접** 하세요.
@@ -29,7 +36,7 @@
 ## 설치 방법 — 원클릭 ✨
 
 설치 스크립트가 **알아서** 안전장치를 넣고 클로드 설정에 등록합니다.
-(기존 설정은 건드리지 않고 그대로 보존하며, 자동으로 백업도 만듭니다.)
+(기존 설정은 건드리지 않고 그대로 보존하며, 자동으로 백업도 만듭니다. 설정 파일이 깨져 있으면 덮어쓰지 않고 안전하게 중단합니다.)
 
 > 🔗 **다른 사람들에게 나눠줄 땐** → [INSTALL.md](INSTALL.md) 참고.
 > 링크 하나만 공유하면, 각자 클로드에게 "이 주소 설치해줘" 한 줄로 끝납니다. (카톡방·개별전송 불필요)
@@ -56,7 +63,7 @@ bash install.sh
 <details>
 <summary>수동 설치 (스크립트를 쓰기 어려운 경우)</summary>
 
-`hooks/` 안의 스크립트를 `~/.claude/hooks/`(윈도우는 `%USERPROFILE%\.claude\hooks\`)로 복사하고,
+`hooks/` 안의 파일들을 `~/.claude/hooks/`(윈도우는 `%USERPROFILE%\.claude\hooks\`)로 복사하고,
 `settings-snippet.<os>.json`의 `"hooks"` 내용을 `settings.json`에 병합하세요.
 </details>
 
@@ -64,15 +71,23 @@ bash install.sh
 
 ## 잘 깔렸는지 확인 (안심 테스트)
 
-클로드한테 이렇게 말해보세요:
+두 단계 모두 **아무것도 삭제하거나 바꾸지 않는** 안전한 테스트입니다.
 
-> "`rm -rf ~/Desktop` 실행해줘"
+**① 규칙 검사 (자가진단)** — 클로드에게:
 
-안전장치가 켜져 있으면 클로드가 **실행하지 못하고** `[SAFETY] 되돌릴 수 없는 삭제(rm -rf)를 막았어요...` 라는 메시지를 받습니다.
-이 메시지가 뜨면 성공이에요. (물론 실제로 삭제되지 않습니다.)
+> "안전장치 자가진단 실행해줘"
 
-Windows라면:
-> "`Get-Content .env` 실행해줘" → `[SECRET] .env ... 열람을 막았어요`
+30여 개의 위험/일상 명령을 "검사만" 해보고 `🎉 전부 통과`가 나오면 규칙이 정상입니다.
+
+**② 훅 연결 검사** — 클로드에게:
+
+> "`git push --force` 실행해봐"
+
+`[안전장치 v1.1.0] 강제 푸시(git push --force)를 막았어요...` 메시지가 뜨면 성공.
+git 저장소가 아닌 폴더에서 하면, 설령 훅이 꺼져 있어도 명령 자체가 아무 일도 하지 않으므로 안전합니다.
+
+> ❗ 예전 안내처럼 "바탕화면 지워줘" 같은 **진짜 위험한 요청으로 테스트하지 마세요.**
+> 안전장치에 문제가 있으면 정말로 지워질 수 있습니다. 테스트는 "실패해도 무해한 명령"으로 하는 것이 원칙입니다.
 
 ---
 
@@ -84,8 +99,14 @@ Windows라면:
 **Q. 안전장치가 정상 명령을 잘못 막으면?**
 정말 그 명령이 필요하면, 클로드 말고 **직접 터미널을 열어** 실행하세요. 안전장치는 클로드의 자동 실행만 막습니다.
 
-**Q. 이걸 끄고 싶어요.**
-`settings.json`의 `PreToolUse` 훅 부분만 지우고 클로드를 재시작하면 됩니다.
+**Q. 뭔가 차단됐는데 이게 뭔지 모르겠어요.**
+차단 메시지가 `[안전장치 v...]`로 시작하면 이 키트가 막은 것입니다. `~/.claude/hooks/SAFETY-KIT.md`에 전부 설명되어 있고, 클로드에게 "SAFETY-KIT.md 읽고 설명해줘"라고 물어봐도 됩니다.
+
+**Q. 이걸 끄거나 지우고 싶어요.**
+- 맥: `bash ~/.claude/hooks/uninstall.sh`
+- 윈도우: `powershell -NoProfile -ExecutionPolicy Bypass -File "$env:USERPROFILE\.claude\hooks\uninstall.ps1"`
+
+훅 등록과 파일이 전부 깨끗이 제거됩니다(다른 설정은 그대로). 제거 후 클로드를 재시작하세요.
 
 ---
 
@@ -93,9 +114,22 @@ Windows라면:
 ```
 claude-safety-kit/
 ├── README.md                     ← 지금 이 파일
+├── INSTALL.md                    ← 배포용 한 줄 안내
+├── install.sh / install.ps1      ← 원클릭 설치 (Mac·Linux / Windows)
+├── uninstall.sh / uninstall.ps1  ← 원클릭 제거
 ├── hooks/
-│   ├── safety-guard.ps1          ← Windows용 안전장치
-│   └── safety-guard.sh           ← Mac/Linux용 안전장치
-├── settings-snippet.windows.json ← Windows 설정 조각
-└── settings-snippet.mac.json     ← Mac/Linux 설정 조각
+│   ├── safety-guard.sh           ← Mac/Linux용 안전장치 본체
+│   ├── safety-guard.ps1          ← Windows용 안전장치 본체
+│   └── SAFETY-KIT.md             ← 설치되는 설명서 (몇 달 뒤의 나를 위한 것)
+└── settings-snippet.{mac,windows}.json  ← 수동 설치용 설정 조각
 ```
+
+## v1.1.0에서 바뀐 것
+
+- **훅 입력을 제대로 파싱**: Claude Code가 stdin으로 주는 JSON에서 실행될 명령만 꺼내 검사합니다. (구버전은 JSON 원문에 정규식을 돌려서, 따옴표 경로·`$HOME`·`C:\Users\...` 리터럴 경로가 전부 우회되고 오탐 위험도 있었습니다)
+- **바탕화면·문서 등 홈 최상위 폴더 삭제 차단 추가** — 어떤 경로 표기로 와도 잡습니다
+- **자가진단 내장** (`--self-test` / `-SelfTest`) + 설치 시 자동 실행
+- **설명서(SAFETY-KIT.md)·제거 스크립트 동봉** — 차단 메시지에 출처와 끄는 법이 항상 표시됩니다
+- **깨진 settings.json을 덮어쓰던 문제 수정** — 이제 절대 덮어쓰지 않고 중단합니다
+- **Windows 실행 정책(Restricted) 대응** — 훅이 조용히 무력화되던 경우 수정
+- **안심 테스트 변경**: "바탕화면 지워줘" 테스트 폐지 (실제로 지워질 수 있었음)

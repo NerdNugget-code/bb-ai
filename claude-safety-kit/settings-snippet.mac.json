@@ -7,7 +7,7 @@
           {
             "type": "command",
             "shell": "bash",
-            "command": "\"$HOME/.claude/hooks/safety-guard.sh\"",
+            "command": "bash \"$HOME/.claude/hooks/safety-guard.sh\"",
             "statusMessage": "안전장치 검사 중"
           }
         ]
@@ -19,7 +19,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "bash -c 'case \"$(uname -s)\" in Darwin) afplay /System/Library/Sounds/Glass.aiff >/dev/null 2>&1 & ;; *) (command -v paplay >/dev/null && paplay /usr/share/sounds/freedesktop/stereo/complete.oga >/dev/null 2>&1) & ;; esac; exit 0'"
+            "command": "bash -c 'case \"$(uname -s)\" in Darwin) afplay /System/Library/Sounds/Glass.aiff >/dev/null 2>&1 & ;; *) (command -v paplay >/dev/null && paplay /usr/share/sounds/freedesktop/stereo/complete.oga >/dev/null 2>&1) & ;; esac; exit 0' # safety-kit-sound"
           }
         ]
       }

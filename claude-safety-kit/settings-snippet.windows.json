@@ -7,7 +7,7 @@
           {
             "type": "command",
             "shell": "powershell",
-            "command": "& \"$env:USERPROFILE\\.claude\\hooks\\safety-guard.ps1\"",
+            "command": "try { Set-ExecutionPolicy Bypass -Scope Process -Force } catch {}; & \"$env:USERPROFILE\\.claude\\hooks\\safety-guard.ps1\"",
             "statusMessage": "안전장치 검사 중"
           }
         ]
@@ -20,7 +20,7 @@
           {
             "type": "command",
             "shell": "powershell",
-            "command": "[console]::beep(800,200); [console]::beep(1000,300)"
+            "command": "[console]::beep(800,200); [console]::beep(1000,300)  # safety-kit-sound"
           }
         ]
       }

@@ -20,7 +20,10 @@
 param([switch]$SelfTest)
 $ErrorActionPreference = 'SilentlyContinue'
 
-$VERSION = '1.1.3'
+# 한국어 Windows는 콘솔 출력이 CP949라 차단 메시지의 한글이 깨진다 → UTF-8 강제 (v1.1.4)
+try { [Console]::OutputEncoding = [System.Text.Encoding]::UTF8 } catch {}
+
+$VERSION = '1.1.4'
 $TAG     = "[안전장치 v$VERSION]"
 $GUIDE   = '%USERPROFILE%\.claude\hooks\SAFETY-KIT.md'
 

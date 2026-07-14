@@ -7,6 +7,9 @@
 # ============================================================
 $ErrorActionPreference = 'Stop'
 
+# 한국어 Windows는 콘솔 출력이 CP949라 한글 안내가 깨진다 → UTF-8 강제
+try { [Console]::OutputEncoding = [System.Text.Encoding]::UTF8 } catch {}
+
 $claudeDir = Join-Path $env:USERPROFILE '.claude'
 $hooksDir  = Join-Path $claudeDir 'hooks'
 $settings  = Join-Path $claudeDir 'settings.json'

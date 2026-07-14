@@ -15,7 +15,7 @@
 # ============================================================
 set -e
 
-SAFETY_KIT_VERSION="1.1.3"
+SAFETY_KIT_VERSION="1.1.4"
 BASE_URL="https://raw.githubusercontent.com/NerdNugget-code/bb-ai/main/claude-safety-kit"
 SOURCE_URL="https://github.com/NerdNugget-code/bb-ai/tree/main/claude-safety-kit"   # 내용 공개 확인용
 

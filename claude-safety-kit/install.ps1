@@ -15,7 +15,10 @@
 # ============================================================
 $ErrorActionPreference = 'Stop'
 
-$SafetyKitVersion = '1.1.3'
+# 한국어 Windows는 콘솔 출력이 CP949라 한글 안내가 깨진다 → UTF-8 강제
+try { [Console]::OutputEncoding = [System.Text.Encoding]::UTF8 } catch {}
+
+$SafetyKitVersion = '1.1.4'
 $BaseUrl   = 'https://raw.githubusercontent.com/NerdNugget-code/bb-ai/main/claude-safety-kit'
 $SourceUrl = 'https://github.com/NerdNugget-code/bb-ai/tree/main/claude-safety-kit'   # 내용 공개 확인용
 

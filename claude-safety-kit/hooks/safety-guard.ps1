@@ -1,4 +1,4 @@
-# ============================================================
+﻿# ============================================================
 #  safety-guard.ps1 — 클로드 안전장치 v1.1.0 (Windows / PowerShell)
 #  출처(전체 코드 공개): https://github.com/NerdNugget-code/bb-ai/tree/main/claude-safety-kit
 #
@@ -20,7 +20,7 @@
 param([switch]$SelfTest)
 $ErrorActionPreference = 'SilentlyContinue'
 
-$VERSION = '1.1.2'
+$VERSION = '1.1.3'
 $TAG     = "[안전장치 v$VERSION]"
 $GUIDE   = '%USERPROFILE%\.claude\hooks\SAFETY-KIT.md'
 

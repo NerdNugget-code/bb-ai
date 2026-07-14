@@ -1,4 +1,4 @@
-# ============================================================
+﻿# ============================================================
 #  클로드 안전장치 — 완전 제거 (Windows / PowerShell)
 #  실행: powershell -NoProfile -ExecutionPolicy Bypass -File uninstall.ps1
 #  하는 일: settings.json에서 안전장치 훅 등록을 빼고,

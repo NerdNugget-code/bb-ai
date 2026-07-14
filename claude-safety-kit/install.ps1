@@ -1,4 +1,4 @@
-# ============================================================
+﻿# ============================================================
 #  클로드 안전장치 — 원클릭 설치 v1.1.0 (Windows / PowerShell)
 #
 #  [원격 설치] PowerShell 또는 클로드에게:
@@ -15,7 +15,7 @@
 # ============================================================
 $ErrorActionPreference = 'Stop'
 
-$SafetyKitVersion = '1.1.2'
+$SafetyKitVersion = '1.1.3'
 $BaseUrl   = 'https://raw.githubusercontent.com/NerdNugget-code/bb-ai/main/claude-safety-kit'
 $SourceUrl = 'https://github.com/NerdNugget-code/bb-ai/tree/main/claude-safety-kit'   # 내용 공개 확인용
 
@@ -34,6 +34,15 @@ function Install-KitFile([string]$relPath, [string]$destPath) {
     Copy-Item $local $destPath -Force
   } else {
     Invoke-WebRequest -UseBasicParsing -Uri "$BaseUrl/$relPath" -OutFile $destPath
+  }
+  # 한국어 Windows의 PowerShell 5.1은 BOM 없는 .ps1을 CP949로 읽어
+  # 한글 문자열·정규식을 깨뜨린다 → .ps1은 UTF-8 BOM을 보장한다 (v1.1.3)
+  if ($destPath -like '*.ps1') {
+    $bytes = [System.IO.File]::ReadAllBytes($destPath)
+    if ($bytes.Length -lt 3 -or $bytes[0] -ne 0xEF -or $bytes[1] -ne 0xBB -or $bytes[2] -ne 0xBF) {
+      $text = [System.Text.Encoding]::UTF8.GetString($bytes)
+      [System.IO.File]::WriteAllText($destPath, $text, (New-Object System.Text.UTF8Encoding($true)))
+    }
   }
 }
 Install-KitFile 'hooks/safety-guard.ps1' (Join-Path $hooksDir 'safety-guard.ps1')

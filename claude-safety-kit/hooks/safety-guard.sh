@@ -17,7 +17,7 @@
 #  ▸ 지금 바로 확인:   bash safety-guard.sh --self-test
 #  ▸ 설명·끄기·삭제:   같은 폴더의 SAFETY-KIT.md
 # ============================================================
-VERSION="1.1.0"
+VERSION="1.1.1"
 TAG="[안전장치 v$VERSION]"
 GUIDE="~/.claude/hooks/SAFETY-KIT.md"
 
@@ -80,7 +80,7 @@ seg_check() {
   fi
 
   # 6) 비밀키(API키·비밀번호) 화면 노출
-  if echo "$s" | grep -qE '(^|[^A-Za-z0-9_])printenv([^A-Za-z0-9_]|$)|(^|[[:space:]])env[[:space:]]*$|(^|[[:space:]])set[[:space:]]*$' \
+  if echo "$s" | grep -qE '(^|[^A-Za-z0-9_])printenv([^A-Za-z0-9_]|$)|^[[:space:]]*env[[:space:]]*$|^[[:space:]]*set[[:space:]]*$' \
      || echo "$s" | grep -qiE '(Get-ChildItem|gci|dir|ls)[[:space:]]+env:'; then
     echo "환경변수 전체(비밀키 포함)를 화면에 쏟아내는 명령을 막았어요"; return 1
   fi
@@ -165,6 +165,8 @@ self_test() {
   t PASS 'echo $PATH'
   t PASS 'python3 -m venv .venv'
   t PASS 'tail -f logs/dev.envoy.log'
+  t PASS 'git status --short | grep -E env'
+  t PASS 'ls -la | grep set'
   echo ""
   if [ "$bad" -eq 0 ]; then
     echo "🎉 전부 통과 ($ok/$((ok+bad))) — 안전장치가 정상 작동 중입니다."

@@ -15,7 +15,7 @@
 # ============================================================
 $ErrorActionPreference = 'Stop'
 
-$SafetyKitVersion = '1.1.0'
+$SafetyKitVersion = '1.1.1'
 $BaseUrl   = 'https://raw.githubusercontent.com/NerdNugget-code/bb-ai/main/claude-safety-kit'
 $SourceUrl = 'https://github.com/NerdNugget-code/bb-ai/tree/main/claude-safety-kit'   # 내용 공개 확인용
 

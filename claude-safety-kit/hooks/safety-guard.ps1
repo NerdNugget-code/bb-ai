@@ -20,7 +20,7 @@
 param([switch]$SelfTest)
 $ErrorActionPreference = 'SilentlyContinue'
 
-$VERSION = '1.1.0'
+$VERSION = '1.1.1'
 $TAG     = "[안전장치 v$VERSION]"
 $GUIDE   = '%USERPROFILE%\.claude\hooks\SAFETY-KIT.md'
 
@@ -68,7 +68,7 @@ function Test-Segment([string]$s) {
     return '데이터베이스를 통째로 지우는 명령을 막았어요'
   }
   # 6) 비밀키(API키·비밀번호) 화면 노출
-  if ($s -cmatch '(^|[^A-Za-z0-9_])printenv([^A-Za-z0-9_]|$)|(^|\s)env\s*$|(^|\s)set\s*$' -or
+  if ($s -cmatch '(^|[^A-Za-z0-9_])printenv([^A-Za-z0-9_]|$)|^\s*env\s*$|^\s*set\s*$' -or
       $s -match '(Get-ChildItem|gci|dir|ls)\s+env:') {
     return '환경변수 전체(비밀키 포함)를 화면에 쏟아내는 명령을 막았어요'
   }
@@ -144,6 +144,8 @@ if ($SelfTest) {
   T 'PASS' 'cat README.md'
   T 'PASS' 'echo $PATH'
   T 'PASS' 'python -m venv .venv'
+  T 'PASS' 'git status --short | grep -E env'
+  T 'PASS' 'ls -la | Select-String set'
   Write-Host ""
   if ($script:bad -eq 0) {
     Write-Host "🎉 전부 통과 ($($script:ok)/$($script:ok + $script:bad)) — 안전장치가 정상 작동 중입니다."

@@ -41,7 +41,7 @@ curl -fsSL https://raw.githubusercontent.com/NerdNugget-code/bb-ai/main/claude-s
 → `🎉 전부 통과` 가 나오면 규칙이 정상입니다.
 
 **② "`git push --force` 실행해봐"**
-→ 🛡️ `[안전장치 v1.1.0] 강제 푸시...를 막았어요` 가 뜨면 성공입니다.
+→ 🛡️ `[안전장치 v…] 강제 푸시...를 막았어요` 가 뜨면 성공입니다.
 (git 저장소가 아닌 폴더에서는, 설령 안 막혀도 이 명령은 아무 일도 하지 않아요.)
 
 ---

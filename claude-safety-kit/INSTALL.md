@@ -7,11 +7,17 @@
 
 ## 방법 1 · 클로드에게 말하기 (제일 쉬움) ⭐
 
-여러분의 클로드코드 창에 이 문장을 붙여넣으세요:
+**본인 컴퓨터에 맞는 문장 하나만** 골라서 클로드코드 창에 붙여넣으세요.
 
-> **이 주소의 안전장치를 설치해줘:**
+### 🪟 윈도우라면
+
+> **이 주소의 안전장치를 설치해줘. 파워셸 설치 스크립트야:**
 > **https://raw.githubusercontent.com/NerdNugget-code/bb-ai/main/claude-safety-kit/install.ps1**
-> *(맥이면 끝을 `install.sh` 로 바꿔주세요)*
+
+### 🍎 맥이라면
+
+> **이 주소의 안전장치를 설치해줘. 받아서 bash로 실행하면 돼:**
+> **https://raw.githubusercontent.com/NerdNugget-code/bb-ai/main/claude-safety-kit/install.sh**
 
 클로드가 알아서 받아서 깔아줍니다. **설치가 끝나면 클로드를 완전히 껐다 켜세요.**
 

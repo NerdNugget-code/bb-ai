@@ -16,7 +16,10 @@ test("writes a secret document inside the fixed .secrets drawer", async () => {
 
   assert.equal(result.fileName, "gemini.env");
   assert.equal(await readFile(result.filePath, "utf8"), "GEMINI_API_KEY='test-value'\n");
-  assert.equal((await stat(result.filePath)).mode & 0o077, 0);
+
+  if (process.platform !== "win32") {
+    assert.equal((await stat(result.filePath)).mode & 0o077, 0);
+  }
 });
 
 test("requires explicit replacement when a secret file already exists", async () => {

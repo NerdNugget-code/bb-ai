@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self'; connect-src 'none'; img-src 'self'" />
+    <title>별별AI 비밀서랍</title>
+    <link rel="stylesheet" href="style.css" />
+  </head>
+  <body>
+    <main>
+      <header>
+        <p class="eyebrow">내 컴퓨터 안에서만 저장</p>
+        <h1>별별AI 비밀서랍</h1>
+        <p class="intro">API 키를 한 번 붙여넣으면 내 비밀 폴더에 저장합니다. 키 값은 화면에 다시 표시하거나 인터넷으로 보내지 않습니다.</p>
+      </header>
+
+      <section class="warning">
+        <strong>중요</strong>
+        <p>이 파일은 AI 도구가 읽을 수 있도록 평문 <code>.env</code> 형식으로 저장됩니다. 키는 채팅창·코드·GitHub에 붙여넣지 말고, 코딩 AI에는 환경변수 이름만 알려주세요.</p>
+      </section>
+
+      <section class="card" aria-labelledby="service-label">
+        <label id="service-label" for="profile">무엇을 저장할까요?</label>
+        <select id="profile">
+          <option value="gemini">Gemini API</option>
+          <option value="openai">OpenAI API</option>
+          <option value="anthropic">Anthropic API</option>
+          <option value="threads">Threads 자동화</option>
+          <option value="custom">직접 이름 정하기</option>
+        </select>
+
+        <form id="secret-form" novalidate>
+          <div id="fields"></div>
+          <button id="save" type="submit">내 비밀 폴더에 저장</button>
+        </form>
+
+        <p id="status" class="status" role="status"></p>
+      </section>
+
+      <section class="note">
+        <h2>저장 위치</h2>
+        <p>Windows와 Mac 모두 내 사용자 폴더 안의 <code>.secrets</code>에 저장됩니다. 프로젝트 폴더나 GitHub에는 저장하지 않습니다.</p>
+        <button id="open-folder" class="secondary" type="button">비밀 폴더 열기</button>
+      </section>
+
+    </main>
+    <script type="module" src="renderer.js"></script>
+  </body>
+</html>

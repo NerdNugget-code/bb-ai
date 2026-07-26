@@ -1,0 +1,53 @@
+{
+  "name": "byeolbyeol-secret-drawer",
+  "private": true,
+  "version": "0.1.3",
+  "description": "A local-only desktop drawer for API keys and tokens.",
+  "author": "Byeolbyeol AI",
+  "type": "module",
+  "main": "main.cjs",
+  "scripts": {
+    "test": "node --test *.test.mjs",
+    "start": "electron .",
+    "package": "electron-builder"
+  },
+  "build": {
+    "appId": "com.byeolbyeol.secret-drawer",
+    "productName": "Byeolbyeol Secret Drawer",
+    "asar": true,
+    "files": [
+      "index.html",
+      "renderer.js",
+      "style.css",
+      "main.cjs",
+      "preload.cjs",
+      "secret-model.mjs",
+      "secret-store.mjs",
+      "package.json"
+    ],
+    "artifactName": "Byeolbyeol-Secret-Drawer-${version}-${os}-${arch}.${ext}",
+    "mac": {
+      "category": "public.app-category.utilities",
+      "target": [
+        "dmg"
+      ],
+      "identity": "-",
+      "extendInfo": {
+        "CFBundleDisplayName": "별별AI 비밀서랍"
+      }
+    },
+    "win": {
+      "target": [
+        "nsis"
+      ]
+    },
+    "nsis": {
+      "shortcutName": "별별AI 비밀서랍",
+      "uninstallDisplayName": "별별AI 비밀서랍 ${version}"
+    }
+  },
+  "devDependencies": {
+    "electron": "^43.2.0",
+    "electron-builder": "^26.15.3"
+  }
+}

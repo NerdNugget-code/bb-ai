@@ -15,3 +15,15 @@
 # ── 시스템 잡동사니 ─────────────────────────────────
 .DS_Store
 Thumbs.db
+
+# ── 예외: 비밀서랍 앱 소스 ──────────────────────────
+# 폴더·파일 이름에 'secret'이 들어갈 뿐 자격증명이 아님 (앱 소스).
+# 단, 그 안에서도 .env류와 빌드 산출물은 다시 차단한다.
+!secret-drawer/
+!secret-drawer/**
+!.github/workflows/secret-drawer-win.yml
+secret-drawer/**/*.env
+secret-drawer/**/.env*
+secret-drawer/node_modules/
+secret-drawer/dist/
+secret-drawer/outputs/

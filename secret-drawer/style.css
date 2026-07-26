@@ -1,0 +1,42 @@
+:root {
+  color: #1f2430;
+  background: #f5f4f0;
+  font-family: "Apple SD Gothic Neo", "Malgun Gothic", system-ui, sans-serif;
+}
+
+* { box-sizing: border-box; }
+
+body { margin: 0; }
+
+main { padding: 26px 32px 24px; }
+
+header { margin-bottom: 16px; }
+
+.eyebrow { margin: 0 0 6px; color: #c25b17; font-size: 13px; font-weight: 700; }
+h1 { margin: 0; font-size: 27px; letter-spacing: -1.5px; }
+.intro { color: #62646b; font-size: 14px; line-height: 1.6; }
+
+.card, .note, .warning { border-radius: 16px; padding: 20px; }
+.card { background: #fff; box-shadow: 0 6px 24px #342d2112; }
+.note { margin-top: 14px; background: #e8eff0; }
+.warning { margin: 0 0 14px; background: #fff0dd; color: #75400d; }
+.warning p, .note p { margin: 7px 0 0; font-size: 13px; line-height: 1.55; }
+h2 { margin: 0; font-size: 15px; }
+
+label { display: block; font-weight: 700; font-size: 14px; }
+select, input, button { width: 100%; font: inherit; }
+select, input { margin-top: 8px; border: 1px solid #d3d5d7; border-radius: 9px; padding: 12px; background: #fff; }
+select { margin-bottom: 14px; }
+.field { margin: 16px 0; }
+small { display: block; color: #75787e; font-weight: 400; font-size: 12px; line-height: 1.45; margin-top: 6px; }
+code { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: .9em; }
+
+button { border: 0; border-radius: 10px; padding: 13px 16px; cursor: pointer; background: #e96d1d; color: #fff; font-weight: 700; }
+button:hover { background: #cc5911; }
+button:disabled { cursor: wait; opacity: .6; }
+.secondary { margin-top: 14px; background: #fff; color: #22545c; border: 1px solid #b4cccf; }
+.secondary:hover { background: #f8ffff; }
+
+.status { min-height: 21px; margin: 14px 0 0; font-size: 13px; line-height: 1.5; }
+.status.success { color: #167643; }
+.status.error { color: #b42b1b; }

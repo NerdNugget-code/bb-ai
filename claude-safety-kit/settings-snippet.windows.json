@@ -1,8 +1,25 @@
 {
+  "permissions": {
+    "deny": [
+      "Read(**/.env)", "Read(**/.env.*)", "Read(**/*.env)", "Read(**/apikeys/**)",
+      "Read(//**/.env)", "Read(//**/.env.*)", "Read(//**/*.env)", "Read(//**/apikeys/**)",
+      "Read(~/.secrets/**)", "Read(~/.ssh/**)", "Read(~/.aws/**)",
+      "Grep(**/.env)", "Grep(**/.env.*)", "Grep(**/*.env)", "Grep(**/apikeys/**)",
+      "Grep(//**/.env)", "Grep(//**/.env.*)", "Grep(//**/*.env)", "Grep(//**/apikeys/**)",
+      "Grep(~/.secrets/**)", "Grep(~/.ssh/**)", "Grep(~/.aws/**)",
+      "Write(**/.env)", "Write(**/.env.*)", "Write(**/*.env)", "Write(**/apikeys/**)",
+      "Write(//**/.env)", "Write(//**/.env.*)", "Write(//**/*.env)", "Write(//**/apikeys/**)",
+      "Write(~/.secrets/**)", "Write(~/.ssh/**)", "Write(~/.aws/**)",
+      "Edit(**/.env)", "Edit(**/.env.*)", "Edit(**/*.env)", "Edit(**/apikeys/**)",
+      "Edit(//**/.env)", "Edit(//**/.env.*)", "Edit(//**/*.env)", "Edit(//**/apikeys/**)",
+      "Edit(~/.secrets/**)", "Edit(~/.ssh/**)", "Edit(~/.aws/**)",
+      "Bash(git push --force*)", "Bash(git push -f*)", "Bash(git reset --hard*)", "Bash(rm -rf /*)", "Bash(rm -rf ~*)"
+    ]
+  },
   "hooks": {
     "PreToolUse": [
       {
-        "matcher": "Bash",
+        "matcher": "Bash|PowerShell",
         "hooks": [
           {
             "type": "command",

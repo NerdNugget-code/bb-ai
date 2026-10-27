@@ -7,7 +7,8 @@
 #     우클릭 → "PowerShell로 실행"   또는   powershell -ExecutionPolicy Bypass -File install.ps1
 #
 #  하는 일: 안전장치 3개 파일(차단기·설명서·제거스크립트)을 %USERPROFILE%\.claude\hooks 에
-#          넣고 클로드 설정(hooks)에 등록한다.
+#          넣고 클로드 설정(hooks)에 등록한다. 비밀키 파일(.env·~/.secrets·~/.ssh·~/.aws)을
+#          클로드의 파일 읽기 도구로 못 열게 하는 읽기 금지 목록(permissions.deny)도 더한다 (v1.1.7)
 #  * git init 하지 않음        * 기존 설정은 보존 + 백업(settings.json.bak)
 #  * 설정 파일이 깨져 있으면 절대 덮어쓰지 않고 중단
 #  * 여러 번 돌려도 안전(중복 등록 안 됨), 제거는 uninstall.ps1 한 번이면 끝
@@ -18,7 +19,7 @@ $ErrorActionPreference = 'Stop'
 # 한국어 Windows는 콘솔 출력이 CP949라 한글 안내가 깨진다 → UTF-8 강제
 try { [Console]::OutputEncoding = [System.Text.Encoding]::UTF8 } catch {}
 
-$SafetyKitVersion = '1.1.5'
+$SafetyKitVersion = '1.1.7'
 $BaseUrl   = 'https://raw.githubusercontent.com/NerdNugget-code/bb-ai/main/claude-safety-kit'
 $SourceUrl = 'https://github.com/NerdNugget-code/bb-ai/tree/main/claude-safety-kit'   # 내용 공개 확인용
 
@@ -104,13 +105,32 @@ if ($obj.PSObject.Properties.Name -contains 'hooks' -and $obj.hooks) {
     else   { $otherHooks[$p.Name] = $p.Value }
   }
 }
-# 이전 버전 포함, 우리가 등록했던 항목만 제거(다른 훅은 그대로)
-$pre  = @($pre  | Where-Object { ($_ | ConvertTo-Json -Depth 20 -Compress) -notmatch 'safety-guard' })
-$stop = @($stop | Where-Object { ($_ | ConvertTo-Json -Depth 20 -Compress) -notmatch 'safety-kit-sound' })
+# 이전 버전 포함, 우리가 등록했던 '훅 하나하나'만 뺀다 (v1.1.7)
+# 예전엔 안전장치가 든 '묶음(그룹)'을 통째로 빼서, 같은 묶음에 사용자가 직접 넣어 둔
+# 다른 훅까지 함께 사라졌다. 이제 묶음 안에서 우리 훅만 빼고, 빈 묶음만 정리한다.
+function Remove-OurHooks($groups, [string]$marker) {
+  $kept = @()
+  foreach ($g in @($groups)) {
+    if ($null -eq $g) { continue }
+    if ($g.PSObject.Properties.Name -contains 'hooks') {
+      $inner = @(@($g.hooks) | Where-Object { ($_ | ConvertTo-Json -Depth 20 -Compress) -notmatch $marker })
+      if ($inner.Count -eq 0) { continue }
+      $g | Add-Member -NotePropertyName 'hooks' -NotePropertyValue $inner -Force
+      $kept += $g
+    } elseif (($g | ConvertTo-Json -Depth 20 -Compress) -notmatch $marker) {
+      $kept += $g
+    }
+  }
+  return ,$kept
+}
+$pre  = Remove-OurHooks $pre  'safety-guard'
+$stop = Remove-OurHooks $stop 'safety-kit-sound'
 
 # 실행 정책이 Restricted 여도 훅이 돌 수 있게 Process 범위에서만 우회하고,
 # exit 2(차단 신호)가 래퍼에서 뭉개지지 않도록 그대로 다시 내보낸다 (위 2.5에서 실검증한 명령)
-$pre += @{ matcher = 'Bash'; hooks = @(@{
+# Windows의 클로드는 Bash 도구 말고 PowerShell 도구로도 명령을 실행한다.
+# matcher가 'Bash'뿐이면 PowerShell 도구 쪽은 검사 없이 통과한다 → 둘 다 건다 (v1.1.6)
+$pre += @{ matcher = 'Bash|PowerShell'; hooks = @(@{
   type = 'command'; shell = 'powershell'
   command = $HookCommand
   statusMessage = '안전장치 검사 중' }) }
@@ -124,9 +144,39 @@ $newHooks['PreToolUse'] = $pre
 $newHooks['Stop'] = $stop
 $obj | Add-Member -NotePropertyName 'hooks' -NotePropertyValue $newHooks -Force
 
+# ── 3.5) 읽기 금지 목록 (permissions.deny) — 이미 있는 항목은 그대로, 없는 것만 더한다 (v1.1.7)
+#   · 훅은 '명령'만 본다. 클로드가 Read·Grep 도구로 파일을 직접 여는 건 이 목록이 막는다.
+#   · '**/'로 시작하는 규칙은 작업 폴더 안에서만 먹는다 → '//**/'(모든 드라이브) 규칙을 같이 넣는다
+#     (윈도우 실기기에서 실측: '//**/' 하나로 C:·D: 전부 걸림)
+#   · '~/'가 안 풀리는 경우를 대비해 내 홈 폴더 절대경로(//c/Users/이름/...)도 같이 넣는다
+$homeSlash = $env:USERPROFILE -replace '\\', '/'                      # C:/Users/kim
+if ($homeSlash -match '^([A-Za-z]):(.*)$') { $homeAbs = '//' + $Matches[1].ToLower() + $Matches[2] }   # //c/Users/kim
+else { $homeAbs = '/' + $homeSlash.TrimStart('/') }
+$denyPaths = @(
+  '**/.env', '**/.env.*', '**/*.env', '**/apikeys/**',
+  '//**/.env', '//**/.env.*', '//**/*.env', '//**/apikeys/**',
+  '~/.secrets/**', "$homeAbs/.secrets/**",
+  '~/.ssh/**', "$homeAbs/.ssh/**",
+  '~/.aws/**', "$homeAbs/.aws/**"
+)
+$KitDeny = @()
+foreach ($t in 'Read', 'Grep', 'Write', 'Edit') { foreach ($p in $denyPaths) { $KitDeny += "$t($p)" } }
+$KitDeny += 'Bash(git push --force*)', 'Bash(git push -f*)', 'Bash(git reset --hard*)', 'Bash(rm -rf /*)', 'Bash(rm -rf ~*)'
+
+if (-not ($obj.PSObject.Properties.Name -contains 'permissions') -or -not $obj.permissions) {
+  $obj | Add-Member -NotePropertyName 'permissions' -NotePropertyValue (New-Object PSObject) -Force
+}
+$deny = @()
+if ($obj.permissions.PSObject.Properties.Name -contains 'deny' -and $obj.permissions.deny) { $deny = @($obj.permissions.deny) }
+$added = 0
+foreach ($d in $KitDeny) { if ($deny -notcontains $d) { $deny += $d; $added++ } }
+$obj.permissions | Add-Member -NotePropertyName 'deny' -NotePropertyValue $deny -Force
+
 $json = $obj | ConvertTo-Json -Depth 20
 [System.IO.File]::WriteAllText($settings, $json, (New-Object System.Text.UTF8Encoding($false)))
 Write-Host "   ✓ 클로드 설정에 등록됨$(if (Test-Path "$settings.bak") { '  (기존 설정은 settings.json.bak 으로 백업)' })"
+Write-Host "   ✓ 비밀키 파일 읽기 금지 목록: $($added)개 추가 (이미 있던 $($KitDeny.Count - $added)개는 그대로)"
+Write-Host "      → 비밀키는 %USERPROFILE%\.secrets 폴더나 프로젝트의 .env 파일에 두세요. 클로드가 열어보지 못합니다."
 
 Write-Host ""
 Write-Host "🎉  설치 완료!  클로드를 완전히 껐다 켠 뒤, 이렇게 확인해 보세요:"

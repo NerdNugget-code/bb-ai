@@ -29,15 +29,25 @@ if (Test-Path $settings) {
     Copy-Item $settings "$settings.bak" -Force
     $markers = @('safety-guard', 'safety-kit-sound')
     $changed = $false
+    function Test-Ours($x) {
+      $blob = $x | ConvertTo-Json -Depth 20 -Compress
+      foreach ($mk in $markers) { if ($blob -match [regex]::Escape($mk)) { return $true } }
+      return $false
+    }
     if ($obj.PSObject.Properties.Name -contains 'hooks' -and $obj.hooks) {
       $newHooks = @{}
       foreach ($p in $obj.hooks.PSObject.Properties) {
         $kept = @()
         foreach ($entry in @($p.Value)) {
-          $blob = $entry | ConvertTo-Json -Depth 20 -Compress
-          $isOurs = $false
-          foreach ($mk in $markers) { if ($blob -match [regex]::Escape($mk)) { $isOurs = $true } }
-          if ($isOurs) { $changed = $true } else { $kept += $entry }
+          # 묶음(그룹) 안에서 안전장치 훅 '하나하나'만 뺀다 — 같은 묶음의 다른 훅은 남긴다 (v1.1.7)
+          if ($entry.PSObject.Properties.Name -contains 'hooks') {
+            $inner = @(@($entry.hooks) | Where-Object { -not (Test-Ours $_) })
+            if ($inner.Count -ne @($entry.hooks).Count) { $changed = $true }
+            if ($inner.Count -gt 0) {
+              $entry | Add-Member -NotePropertyName 'hooks' -NotePropertyValue $inner -Force
+              $kept += $entry
+            }
+          } elseif (Test-Ours $entry) { $changed = $true } else { $kept += $entry }
         }
         if ($kept.Count -gt 0) { $newHooks[$p.Name] = $kept } else { $changed = $true }
       }
@@ -55,6 +65,33 @@ if (Test-Path $settings) {
       }
     } else {
       Write-Host "   · settings.json 에 훅이 없습니다"
+    }
+    # 설치기가 더한 읽기 금지 목록(permissions.deny)만 뺀다 — install.ps1 3.5단계와 같은 목록 (v1.1.7)
+    # (설치 전부터 똑같은 항목을 직접 넣어 두었다면 그것도 함께 빠진다)
+    if ($obj.PSObject.Properties.Name -contains 'permissions' -and $obj.permissions -and
+        $obj.permissions.PSObject.Properties.Name -contains 'deny' -and $obj.permissions.deny) {
+      $homeSlash = $env:USERPROFILE -replace '\\', '/'
+      if ($homeSlash -match '^([A-Za-z]):(.*)$') { $homeAbs = '//' + $Matches[1].ToLower() + $Matches[2] }
+      else { $homeAbs = '/' + $homeSlash.TrimStart('/') }
+      $denyPaths = @(
+        '**/.env', '**/.env.*', '**/*.env', '**/apikeys/**',
+        '//**/.env', '//**/.env.*', '//**/*.env', '//**/apikeys/**',
+        '~/.secrets/**', "$homeAbs/.secrets/**",
+        '~/.ssh/**', "$homeAbs/.ssh/**",
+        '~/.aws/**', "$homeAbs/.aws/**"
+      )
+      $KitDeny = @()
+      foreach ($t in 'Read', 'Grep', 'Write', 'Edit') { foreach ($dp in $denyPaths) { $KitDeny += "$t($dp)" } }
+      $KitDeny += 'Bash(git push --force*)', 'Bash(git push -f*)', 'Bash(git reset --hard*)', 'Bash(rm -rf /*)', 'Bash(rm -rf ~*)'
+      $before = @($obj.permissions.deny)
+      $after  = @($before | Where-Object { $KitDeny -notcontains $_ })
+      if ($after.Count -ne $before.Count) {
+        if ($after.Count -gt 0) { $obj.permissions | Add-Member -NotePropertyName 'deny' -NotePropertyValue $after -Force }
+        else { $obj.permissions.PSObject.Properties.Remove('deny') }
+        $json = $obj | ConvertTo-Json -Depth 20
+        [System.IO.File]::WriteAllText($settings, $json, (New-Object System.Text.UTF8Encoding($false)))
+        Write-Host "   ✓ 읽기 금지 목록에서 안전장치 항목 $($before.Count - $after.Count)개 해제 (다른 항목은 그대로)"
+      }
     }
   }
 } else {

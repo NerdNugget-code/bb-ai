@@ -23,7 +23,7 @@ $ErrorActionPreference = 'SilentlyContinue'
 # 한국어 Windows는 콘솔 출력이 CP949라 차단 메시지의 한글이 깨진다 → UTF-8 강제 (v1.1.4)
 try { [Console]::OutputEncoding = [System.Text.Encoding]::UTF8 } catch {}
 
-$VERSION = '1.1.5'
+$VERSION = '1.1.7'
 $TAG     = "[안전장치 v$VERSION]"
 $GUIDE   = '%USERPROFILE%\.claude\hooks\SAFETY-KIT.md'
 
@@ -50,7 +50,8 @@ function Test-Segment([string]$s) {
     return '홈·바탕화면·시스템 폴더를 통째로 지우는 삭제 명령을 막았어요'
   }
   # 3) 디스크를 지우는 명령
-  if ($s -match '(^|[^A-Za-z])format\s+[A-Za-z]:|Format-Volume|(^|\s)diskpart(\s|$)|cipher\s+/w|(^|\s)mkfs(\.|\s)|(^|\s)dd\s[^;]*of=/dev/') {
+  #    (format 앞의 '-' 제외: Get-Date -Format "h:mm" 같은 PowerShell 매개변수 오탐 방지 — v1.1.6)
+  if ($s -match '(^|[^A-Za-z-])format\s+[A-Za-z]:|Format-Volume|(^|\s)diskpart(\s|$)|cipher\s+/w|(^|\s)mkfs(\.|\s)|(^|\s)dd\s[^;]*of=/dev/') {
     return '디스크·드라이브를 통째로 지우는 명령을 막았어요'
   }
   # 4) git — 기록·작업물이 날아가는 명령
@@ -82,6 +83,30 @@ function Test-Segment([string]$s) {
   if ($s -match '(^|\s)(echo|printf|print|Write-Host|Write-Output)(\s|$)' -and
       $s -cmatch '\$\{?(env:)?[A-Za-z_]*(KEY|SECRET|TOKEN|PASSWORD|PASSWD|CREDENTIAL)') {
     return '비밀키를 화면에 출력하려는 명령을 막았어요'
+  }
+  # 7) 비밀키 노출 — PowerShell 쪽 빈틈 (v1.1.7)
+  if ($s -match '(^|\s)(Get-Item|gi|Get-Content|gc|cat|type)\s+env:' -or $s -match 'GetEnvironmentVariables\s*\(') {
+    return '환경변수(비밀키 포함)를 화면에 쏟아내는 명령을 막았어요'
+  }
+  if ($s -cmatch '^\s*\$[Ee][Nn][Vv]:[A-Za-z0-9_]*(KEY|SECRET|TOKEN|PASSWORD|PASSWD|CREDENTIAL)[A-Za-z0-9_]*\s*$') {
+    return '비밀키 환경변수를 그대로 화면에 출력하려는 명령을 막았어요'
+  }
+  if ($s -match 'ReadAll(Text|Lines|Bytes)' -and $s -match '\.env([\\/\s.)]|$)') {
+    return '.env(비밀키 파일) 열람을 막았어요. 키 값은 화면에 찍지 말고 환경변수로만 쓰세요'
+  }
+  # 8) 비밀키 보관 폴더 ~/.secrets — 이름이 나오면 막고, 환경변수로 불러오기(source)와 목록 보기만 허용 (v1.1.7)
+  #    (python -c 등으로 감싼 열람까지 막으려고 "읽기 명령어"가 아니라 "폴더 언급"으로 판단)
+  if ($s -match '(^|[^A-Za-z0-9_-])\.secrets([\\/\s)]|$)') {
+    $okSource = $s -match '^\s*(source|\.)\s+\S*\.secrets[\\/]\S*\s*$'
+    $okList   = $s -match '^\s*(ls|dir|Get-ChildItem|gci|Test-Path)(\s+-[A-Za-z]+)*\s+\S*\.secrets[\\/]?\S*(\s+-[A-Za-z]+)*\s*$'
+    if (-not ($okSource -or $okList)) {
+      return '비밀키 보관 폴더(.secrets) 열람을 막았어요. 키는 환경변수로만 불러 쓰세요'
+    }
+  }
+  # 9) 접속 키 폴더 ~/.ssh, ~/.aws — 읽기·복사만 막음 (ssh -i 처럼 키를 '쓰는' 명령은 허용) (v1.1.7)
+  if ($s -match '(^|\s)(cat|type|less|more|head|tail|grep|rg|sed|awk|strings|xxd|od|pbcopy|clip|open|code|notepad|Get-Content|gc|Select-String|sls|findstr|cp|copy|Copy-Item|Set-Clipboard)\s' -and
+      $s -match '\.(ssh|aws)[\\/]') {
+    return '접속 키 폴더(.ssh·.aws) 열람·복사를 막았어요'
   }
   return $null
 }
@@ -134,6 +159,16 @@ if ($SelfTest) {
   T 'BLOCK' 'cat .env'
   T 'BLOCK' 'Get-Content .env.local'
   T 'BLOCK' 'echo $env:OPENAI_API_KEY'
+  T 'BLOCK' 'gc env:OPENAI_API_KEY'
+  T 'BLOCK' '$env:OPENAI_API_KEY'
+  T 'BLOCK' '[IO.File]::ReadAllText("D:\proj\.env")'
+  T 'BLOCK' 'cat ~/.secrets/openai.env'
+  T 'BLOCK' 'Get-Content "$env:USERPROFILE\.secrets\openai.env"'
+  T 'BLOCK' 'python -c "print(open(''C:/Users/kim/.secrets/openai.env'').read())"'
+  T 'BLOCK' 'Copy-Item ~\.secrets\openai.env D:\x.txt'
+  T 'BLOCK' 'Select-String -Path ~\.secrets\* -Pattern KEY'
+  T 'BLOCK' 'cat ~/.ssh/id_ed25519'
+  T 'BLOCK' 'Get-Content $env:USERPROFILE\.aws\credentials'
   Write-Host ""
   Write-Host "[통과해야 하는 일상 명령들]"
   T 'PASS' 'npm install'
@@ -149,6 +184,33 @@ if ($SelfTest) {
   T 'PASS' 'python -m venv .venv'
   T 'PASS' 'git status --short | grep -E env'
   T 'PASS' 'ls -la | Select-String set'
+  Write-Host ""
+  Write-Host "[통과해야 하는 PowerShell 일상 명령들]"
+  T 'PASS' 'Get-ChildItem -Recurse -Filter *.md'
+  T 'PASS' 'Get-Content package.json | ConvertFrom-Json'
+  T 'PASS' 'Get-Content "$env:USERPROFILE\.claude\settings.json"'
+  T 'PASS' 'Remove-Item -Recurse -Force .\node_modules'
+  T 'PASS' 'Remove-Item -Recurse -Force C:\Users\kim\project\dist'
+  T 'PASS' 'if (Test-Path build) { Remove-Item -Recurse -Force build }'
+  T 'PASS' 'Copy-Item .env.example .env'
+  T 'PASS' 'Test-Path .env'
+  T 'PASS' 'Set-Location D:\projects\my-app'
+  T 'PASS' '$env:PATH -split ";"'
+  T 'PASS' 'Write-Host $env:USERNAME'
+  T 'PASS' 'Get-Date -Format "h:mm tt"'
+  T 'PASS' 'Get-ChildItem | Format-Table Name, Length -AutoSize'
+  T 'PASS' 'Select-String -Path src\*.js -Pattern environment'
+  T 'PASS' 'Get-Process | Sort-Object CPU -Descending | Select-Object -First 5'
+  Write-Host ""
+  Write-Host "[통과해야 하는 비밀키 관련 일상 명령들 (v1.1.7)]"
+  T 'PASS' 'source ~/.secrets/openai.env'
+  T 'PASS' 'ls -la ~/.secrets'
+  T 'PASS' 'Get-ChildItem ~\.secrets -Force'
+  T 'PASS' 'Test-Path ~\.secrets'
+  T 'PASS' '$env:OPENAI_API_KEY.Length'
+  T 'PASS' 'ssh -i ~/.ssh/id_ed25519 user@example.com'
+  T 'PASS' 'git config user.name'
+  T 'PASS' 'Get-Content app.secrets.json.example'
   Write-Host ""
   if ($script:bad -eq 0) {
     Write-Host "🎉 전부 통과 ($($script:ok)/$($script:ok + $script:bad)) — 안전장치가 정상 작동 중입니다."

@@ -21,6 +21,7 @@
 - **작업 기록 파괴**: `git push --force`, `git reset --hard`, `git clean -f`
 - **디스크·DB 파괴**: `format C:`, `diskpart`, `DROP TABLE` 등
 - **비밀키 노출**: `.env` 파일 열람, `printenv` 같은 환경변수 통째 출력, `echo $API_KEY`
+- (윈도우 v1.1.7) **비밀키 보관 폴더 `~/.secrets`·접속 키 폴더 `~/.ssh`·`~/.aws` 열람**, 그리고 클로드가 파일 읽기 도구로 `.env`·`~/.secrets`·`~/.ssh`·`~/.aws`·`apikeys`를 직접 여는 것(`settings.json`의 `permissions.deny` 목록). 비밀키는 `C:\Users\내이름\.secrets` 폴더나 프로젝트의 `.env`에 두세요.
 
 > ⚠️ 안전장치는 "그물"이지 "방탄유리"가 아닙니다. 흔한 사고를 막아줄 뿐이니, 클로드가 하는 일은 늘 눈으로 확인하세요.
 
